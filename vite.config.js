@@ -24,11 +24,6 @@ export default defineConfig({
       '/health': {
         target: 'http://localhost:8080',
         changeOrigin: true
-      },
-      // 添加這個代理設置，用於訪問上傳的圖片
-      '/uploads': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
       }
     }
   }

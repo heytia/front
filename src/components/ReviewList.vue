@@ -95,6 +95,33 @@
             <!-- Content -->
             <p class="review-text mt-3 text-forest">{{ review.reviewText }}</p>
 
+            <!-- 評價圖片 -->
+            <div class="review-images" v-if="review.imageUrls && review.imageUrls.length > 0">
+              <div v-for="(url, index) in review.imageUrls.slice(0, 3)" :key="index" class="image-item">
+                <div class="image-wrapper">
+                  <img 
+                    :src="processImageUrl(url)" 
+                    :alt="`評價圖片 ${index + 1}`" 
+                    @click="viewImage(review.id, index)"
+                    @load="handleImageLoaded(review.id, index)"
+                    @error="(event) => handleImageError(event, review.id, index)"
+                    class="review-image"
+                  />
+                  <div class="image-loading" v-if="imageLoading[review.id]?.[index]">
+                    <div class="spinner-border spinner-sm text-secondary" role="status">
+                      <span class="visually-hidden">載入中...</span>
+                    </div>
+                  </div>
+                  <div class="image-overlay" @click.stop="viewImage(review.id, index)">
+                    <i class="bi bi-zoom-in"></i>
+                  </div>
+                </div>
+              </div>
+              <div v-if="review.imageUrls.length > 3" class="more-images" @click="viewImage(review.id, 3)">
+                +{{ review.imageUrls.length - 3 }}
+              </div>
+            </div>
+
             <!-- Pros & Cons -->
             <div class="pros-cons mt-3" v-if="review.pros || review.cons">
               <div v-if="review.pros" class="pros">
@@ -273,7 +300,7 @@ export default {
       }) 
     }
   },
-  setup(props) {
+  setup(props, { emit }) {
     // 基本狀態
     const reviews = ref([]);
     const loading = ref(true);
@@ -286,6 +313,9 @@ export default {
     
     // 是否為營地主人
     const isOwner = ref(true); // 實際應從用戶權限獲取
+    
+    // 圖片加載狀態管理
+    const imageLoading = ref({});
     
     // 營地資料
     const campSites = {
@@ -316,6 +346,64 @@ export default {
       } catch (e) {
         console.error('日期格式化錯誤:', e);
         return dateString;
+      }
+    };
+
+    // 處理圖片 URL，確保可以正確顯示
+    const processImageUrl = (url) => {
+      if (!url) return '';
+      
+      // 如果已經是完整 URL（包含 http 或 https）
+      if (url.startsWith('http')) {
+        return url;
+      }
+      
+      // 如果是相對路徑，需要確保路徑正確
+      return url.startsWith('/') ? url : `/${url}`;
+    };
+
+    // 處理圖片載入完成
+    const handleImageLoaded = (reviewId, index) => {
+      if (!imageLoading.value[reviewId]) {
+        imageLoading.value[reviewId] = {};
+      }
+      imageLoading.value[reviewId][index] = false;
+    };
+
+    // 處理圖片載入錯誤
+    const handleImageError = (event, reviewId, index) => {
+      console.error(`圖片載入失敗: ${reviews.value.find(r => r.id === reviewId)?.imageUrls?.[index]}`);
+      event.target.src = '/img/image-placeholder.jpg';
+      
+      if (!imageLoading.value[reviewId]) {
+        imageLoading.value[reviewId] = {};
+      }
+      imageLoading.value[reviewId][index] = false;
+    };
+
+    // 查看大圖
+    const viewImage = (reviewId, index) => {
+      const review = reviews.value.find(r => r.id === reviewId);
+      if (!review || !review.imageUrls || review.imageUrls.length === 0) return;
+      
+      emit('view-image', review.imageUrls, index);
+      
+      // 如果沒有emit方法，可以使用Swal展示圖片
+      if (!emit) {
+        const currentImageUrl = processImageUrl(review.imageUrls[index]);
+        Swal.fire({
+          imageUrl: currentImageUrl,
+          imageAlt: '評價圖片',
+          width: 'auto',
+          showCloseButton: true,
+          showConfirmButton: false,
+          background: 'rgba(0,0,0,0.9)',
+          padding: '10px',
+          customClass: {
+            container: 'image-viewer-container',
+            popup: 'image-viewer-popup'
+          }
+        });
       }
     };
 
@@ -929,7 +1017,13 @@ export default {
       applySearchFilters,
       clearSearchFilters,
       refreshReviews,
-      addNewReview
+      addNewReview,
+      // 圖片相關功能
+      processImageUrl,
+      handleImageLoaded,
+      handleImageError,
+      viewImage,
+      imageLoading
     };
   }
 };
@@ -1294,6 +1388,7 @@ export default {
   font-weight: 500;
 }
 
+/* 評價圖片相關樣式 - 從ReviewItem.vue整合 */
 .review-images {
   display: flex;
   gap: 12px;
@@ -1331,12 +1426,21 @@ export default {
 }
 
 .image-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
   background-color: rgba(0, 0, 0, 0.03);
+}
+
+.spinner-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
 }
 
 .image-overlay {
@@ -1382,6 +1486,17 @@ export default {
 .more-images:hover {
   background-color: rgba(0, 0, 0, 0.1);
   transform: scale(1.03);
+}
+
+/* 圖片查看器樣式 */
+.image-viewer-container {
+  z-index: 1060;
+}
+
+.image-viewer-popup {
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
 }
 
 /* 評價回覆區塊樣式 */

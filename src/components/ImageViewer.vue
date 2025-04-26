@@ -98,20 +98,17 @@
   });
   
   // 處理圖片 URL
-const processImageUrl = (url) => {
-  if (!url) return '';
-  
-  console.log('處理URL:', url); // 添加調試日誌
-  
-  // 如果已經是完整 URL（包含 http 或 https）
-  if (url.startsWith('http')) {
-    return url;
-  }
-  
-  // 如果是相對路徑，需要確保路徑正確，使用 window.location.origin 
-  // 或者如果確定是通過代理訪問後端，可以直接使用相對路徑
-  return url.startsWith('/') ? url : `/${url}`;
-};
+  const processImageUrl = (url) => {
+    if (!url) return '';
+    
+    // 如果已經是完整 URL（包含 http 或 https）
+    if (url.startsWith('http')) {
+      return url;
+    }
+    
+    // 如果是相對路徑，需要確保路徑正確
+    return url.startsWith('/') ? url : `/${url}`;
+  };
   
   // 處理圖片URL
   const processedCurrentImage = computed(() => {

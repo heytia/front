@@ -128,9 +128,7 @@ const handleImageLoaded = (index) => {
 
 // 處理圖片載入錯誤
 const handleImageError = (event, index) => {
-  const url = props.review.imageUrls?.[index];
-  console.error(`圖片載入失敗: ${url}`);
-  console.error(`處理後的URL: ${processImageUrl(url)}`);
+  console.error(`圖片載入失敗: ${props.review.imageUrls?.[index]}`);
   event.target.src = '/img/image-placeholder.jpg';
   imageLoading.value[index] = false;
 };
